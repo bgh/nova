@@ -180,13 +180,12 @@ class QuantumMelangeIPAMLib(object):
         """Returns information about the IPv4 and IPv6 subnets
            associated with a Quantum Network UUID.
         """
-        subnet_v4 = None
-        subnet_v6 = None
+        subnets_v4 = []
+        subnets_v6 = []
         ips = self.m_conn.get_allocated_ips(net_id, vif_id, tenant_id)
 
         for ip_address in ips:
             block = ip_address['ip_block']
-            print block
             subnet = {'network_id': block['id'],
                       'cidr': block['cidr'],
                       'gateway': block['gateway'],
@@ -195,10 +194,10 @@ class QuantumMelangeIPAMLib(object):
                       'dns1': block['dns1'],
                       'dns2': block['dns2']}
             if ip_address['version'] == 4:
-                subnet_v4 = subnet
+                subnets_v4.append(subnet)
             else:
-                subnet_v6 = subnet
-        return (subnet_v4, subnet_v6)
+                subnets_v6.append(subnet)
+        return (subnets_v4, subnets_v6)
 
     def get_v4_ips_by_interface(self, context, net_id, vif_id, project_id):
         """Returns a list of IPv4 address strings associated with

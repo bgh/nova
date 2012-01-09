@@ -165,7 +165,7 @@ class QuantumNovaIPAMLib(object):
             'netmask': None,
             'dns1': None,
             'dns2': None}
-        return (subnet_data_v4, subnet_data_v6)
+        return ([subnet_data_v4], [subnet_data_v6])
 
     def get_v4_ips_by_interface(self, context, net_id, vif_id, project_id):
         """Returns a list of IPv4 address strings associated with

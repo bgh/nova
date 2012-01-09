@@ -306,11 +306,14 @@ class QuantumManager(manager.FlatManager):
         ipam_tenant_id = self.ipam.get_tenant_id_by_net_id(context,
             quantum_net_id, vif_rec['uuid'], project_id)
         # Figure out what subnets correspond to this network
-        v4_subnet, v6_subnet = self.ipam.get_subnets_by_net_id(context,
+        v4_subnets, v6_subnets = self.ipam.get_subnets_by_net_id(context,
                     ipam_tenant_id, quantum_net_id, vif_rec['uuid'])
+        print v4_subnets
+        print v6_subnets
+        subnets = v4_subnets + v6_subnets
         # Set up (or find) the dhcp server for each of the subnets
         # returned above (both v4 and v6).
-        for subnet in [v4_subnet, v6_subnet]:
+        for subnet in subnets:
             if subnet is None or subnet['cidr'] is None:
                 continue
             # Fill in some of the network fields that we would have
@@ -416,7 +419,7 @@ class QuantumManager(manager.FlatManager):
 
             ipam_tenant_id = self.ipam.get_tenant_id_by_net_id(context,
                 net_id, vif['uuid'], project_id)
-            v4_subnet, v6_subnet = \
+            v4_subnets, v6_subnets = \
                     self.ipam.get_subnets_by_net_id(context,
                             ipam_tenant_id, net_id, vif['uuid'])
 
@@ -427,45 +430,61 @@ class QuantumManager(manager.FlatManager):
                                         net_id, vif['uuid'],
                                         project_id=ipam_tenant_id)
 
-            def ip_dict(ip, subnet):
-                return {
-                    "ip": ip,
-                    "netmask": subnet["netmask"],
-                    "enabled": "1"}
+            def _make_network_dict_and_info(subnet, ips, net, vif, v6=False):
+                def ip_dict(ip, subnet):
+                    return {
+                        "ip": ip,
+                        "netmask": subnet["netmask"],
+                        "enabled": "1"}
 
-            network_dict = {
-                'cidr': v4_subnet['cidr'],
-                'injected': True,
-                'bridge': net['bridge'],
-                'multi_host': False}
+                network_dict = {
+                    'injected': True,
+                    'bridge': net['bridge'],
+                    'multi_host': False}
 
-            q_tenant_id = project_id or FLAGS.quantum_default_tenant_id
-            info = {
-                'label': self.q_conn.get_network_name(q_tenant_id, net_id),
-                'gateway': v4_subnet['gateway'],
-                'dhcp_server': v4_subnet['gateway'],
-                'broadcast': v4_subnet['broadcast'],
-                'mac': vif['address'],
-                'vif_uuid': vif['uuid'],
-                'dns': [],
-                'ips': [ip_dict(ip, v4_subnet) for ip in v4_ips]}
+                q_tenant_id = project_id or FLAGS.quantum_default_tenant_id
+                info = {
+                    'label': self.q_conn.get_network_name(q_tenant_id,
+                                                          net['uuid']),
+                    'gateway': subnet['gateway'],
+                    'dhcp_server': subnet['gateway'],
+                    'broadcast': subnet['broadcast'],
+                    'mac': vif['address'],
+                    'vif_uuid': vif['uuid'],
+                    'dns': []}
 
-            if v6_subnet:
-                if v6_subnet['cidr']:
-                    network_dict['cidr_v6'] = v6_subnet['cidr']
-                    info['ip6s'] = [ip_dict(ip, v6_subnet) for ip in v6_ips]
+                if not v6:
+                    network_dict['cidr'] = subnet['cidr']
+                    info['ips'] = [ip_dict(ip, subnet) for ip in ips]
+                else:
+                    if subnet['cidr']:
+                        network_dict['cidr_v6'] = subnet['cidr']
+                        info['ip6s'] = [ip_dict(ip, subnet) for ip in ips]
 
-                if v6_subnet['gateway']:
-                    info['gateway_v6'] = v6_subnet['gateway']
+                    if subnet['gateway']:
+                        info['gateway6'] = subnet['gateway']
 
-            dns_dict = {}
-            for s in [v4_subnet, v6_subnet]:
+                dns_dict = {}
                 for k in ['dns1', 'dns2']:
-                    if s and s[k]:
-                        dns_dict[s[k]] = None
-            info['dns'] = [d for d in dns_dict.keys()]
+                    if k in subnet and subnet[k]:
+                        dns_dict[subnet[k]] = None
+                info['dns'] = [d for d in dns_dict.keys()]
+                return network_dict, info
 
-            network_info.append((network_dict, info))
+            for subnet in v4_subnets:
+                network_dict, info = _make_network_dict_and_info(subnet,
+                                                                 v4_ips,
+                                                                 net,
+                                                                 vif,
+                                                                 False)
+                network_info.append((network_dict, info))
+            for subnet in v6_subnets:
+                network_dict, info = _make_network_dict_and_info(subnet,
+                                                                 v6_ips,
+                                                                 net,
+                                                                 vif,
+                                                                 True)
+                network_info.append((network_dict, info))
         return network_info
 
     def deallocate_for_instance(self, context, **kwargs):
@@ -524,9 +543,10 @@ class QuantumManager(manager.FlatManager):
     def update_dhcp(self, context, ipam_tenant_id, network_ref, vif_ref,
             project_id):
         # Figure out what subnet corresponds to this network/vif
-        v4_subnet, v6_subnet = self.ipam.get_subnets_by_net_id(context,
+        v4_subnets, v6_subnets = self.ipam.get_subnets_by_net_id(context,
                         ipam_tenant_id, network_ref['uuid'], vif_ref['uuid'])
-        for subnet in [v4_subnet, v6_subnet]:
+        subnets = v4_subnets + v6_subnets
+        for subnet in subnets:
             if subnet is None:
                 continue
             # Fill in some of the network fields that we would have

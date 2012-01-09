@@ -285,27 +285,27 @@ class QuantumNovaIPAMTestCase(QuantumNovaTestCase):
                         instance_type_id=instance_ref['instance_type_id'],
                         project_id=project_id)
 
-        self.assertEquals(len(nw_info), 2)
+        self.assertEquals(len(nw_info), 4)
 
         # we don't know which order the NICs will be in until we
         # introduce the notion of priority
         # v4 cidr
         self.assertTrue(nw_info[0][0]['cidr'].startswith("10."))
-        self.assertTrue(nw_info[1][0]['cidr'].startswith("192."))
+        self.assertTrue(nw_info[2][0]['cidr'].startswith("192."))
 
         # v4 address
         self.assertTrue(nw_info[0][1]['ips'][0]['ip'].startswith("10."))
-        self.assertTrue(nw_info[1][1]['ips'][0]['ip'].startswith("192."))
+        self.assertTrue(nw_info[2][1]['ips'][0]['ip'].startswith("192."))
 
         # v6 cidr
-        self.assertTrue(nw_info[0][0]['cidr_v6'].startswith("2001:1dba:"))
-        self.assertTrue(nw_info[1][0]['cidr_v6'].startswith("2001:1db8:"))
+        self.assertTrue(nw_info[1][0]['cidr_v6'].startswith("2001:1dba:"))
+        self.assertTrue(nw_info[3][0]['cidr_v6'].startswith("2001:1db8:"))
 
         # v6 address
         self.assertTrue(
-            nw_info[0][1]['ip6s'][0]['ip'].startswith("2001:1dba:"))
+            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1dba:"))
         self.assertTrue(
-            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1db8:"))
+            nw_info[3][1]['ip6s'][0]['ip'].startswith("2001:1db8:"))
 
         self.net_man.deallocate_for_instance(ctx,
                     instance_id=instance_ref['id'],
@@ -345,35 +345,35 @@ class QuantumNovaIPAMTestCase(QuantumNovaTestCase):
                         project_id=project_id,
                         requested_networks=requested_networks)
 
-        self.assertEquals(len(nw_info), 2)
+        self.assertEquals(len(nw_info), 4)
 
         # we don't know which order the NICs will be in until we
         # introduce the notion of priority
         # v4 cidr
         self.assertTrue(nw_info[0][0]['cidr'].startswith("9.") or
-                        nw_info[1][0]['cidr'].startswith("9."))
+                        nw_info[2][0]['cidr'].startswith("9."))
         self.assertTrue(nw_info[0][0]['cidr'].startswith("192.") or
-                        nw_info[1][0]['cidr'].startswith("192."))
+                        nw_info[2][0]['cidr'].startswith("192."))
 
         # v4 address
         self.assertTrue(nw_info[0][1]['ips'][0]['ip'].startswith("9.") or
-                        nw_info[1][1]['ips'][0]['ip'].startswith("9."))
+                        nw_info[2][1]['ips'][0]['ip'].startswith("9."))
         self.assertTrue(nw_info[0][1]['ips'][0]['ip'].startswith("192.") or
-                        nw_info[1][1]['ips'][0]['ip'].startswith("192."))
+                        nw_info[2][1]['ips'][0]['ip'].startswith("192."))
 
         # v6 cidr
-        self.assertTrue(nw_info[0][0]['cidr_v6'].startswith("2001:1dbb:") or
-                        nw_info[1][0]['cidr_v6'].startswith("2001:1dbb:"))
-        self.assertTrue(nw_info[0][0]['cidr_v6'].startswith("2001:1db9:") or
-                        nw_info[1][0]['cidr_v6'].startswith("2001:1db9:"))
+        self.assertTrue(nw_info[1][0]['cidr_v6'].startswith("2001:1dbb:") or
+                        nw_info[3][0]['cidr_v6'].startswith("2001:1dbb:"))
+        self.assertTrue(nw_info[1][0]['cidr_v6'].startswith("2001:1db9:") or
+                        nw_info[3][0]['cidr_v6'].startswith("2001:1db9:"))
 
         # v6 address
         self.assertTrue(
-            nw_info[0][1]['ip6s'][0]['ip'].startswith("2001:1dbb:") or
-            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1dbb:"))
+            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1dbb:") or
+            nw_info[3][1]['ip6s'][0]['ip'].startswith("2001:1dbb:"))
         self.assertTrue(
-            nw_info[0][1]['ip6s'][0]['ip'].startswith("2001:1db9:") or
-            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1db9:"))
+            nw_info[1][1]['ip6s'][0]['ip'].startswith("2001:1db9:") or
+            nw_info[3][1]['ip6s'][0]['ip'].startswith("2001:1db9:"))
 
         self.net_man.deallocate_for_instance(ctx,
                     instance_id=instance_ref['id'],
